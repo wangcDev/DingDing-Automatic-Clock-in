@@ -9,10 +9,10 @@
 const ACCOUNT = "钉钉账号"
 const PASSWORD = "钉钉密码"
 
-const QQ =              "用于接收打卡结果的QQ号"
+const QQ ="2498925893"              //"用于接收打卡结果的QQ号"
 const EMAILL_ADDRESS =  "用于接收打卡结果的邮箱地址"
-const SERVER_CHAN =     "Server酱发送密钥"
-const PUSH_DEER =       "PushDeer发送密钥"
+const SERVER_CHAN =     "SCT81881TINmNztKSuLHWE7HwNAqRC29Z"
+const PUSHPLUS =       "c3f691bd00ca4546bae14d1886088632"
 
 const PUSH_METHOD = {QQ: 1, Email: 2, ServerChan: 3, PushDeer: 4}
 
@@ -20,8 +20,8 @@ const PUSH_METHOD = {QQ: 1, Email: 2, ServerChan: 3, PushDeer: 4}
 // PUSH_METHOD.QQ -- QQ
 // PUSH_METHOD.Email -- Email 
 // PUSH_METHOD.ServerChan -- Server酱
-// PUSH_METHOD.PushDeer -- Push Deer
-var DEFAULT_MESSAGE_DELIVER = PUSH_METHOD.QQ;
+// PUSH_METHOD.PushPlus -- PushPlus
+var DEFAULT_MESSAGE_DELIVER = PUSH_METHOD.PushPlus;
 
 const PACKAGE_ID_QQ = "com.tencent.mobileqq"                // QQ
 const PACKAGE_ID_DD = "com.alibaba.android.rimet"           // 钉钉
@@ -44,7 +44,7 @@ const NOTIFICATIONS_FILTER = true
 const PACKAGE_ID_WHITE_LIST = [PACKAGE_ID_QQ,PACKAGE_ID_DD,PACKAGE_ID_XMSF,PACKAGE_ID_MAIL_163,PACKAGE_ID_TASKER,PACKAGE_ID_PUSHDEER]
 
 // 公司的钉钉CorpId, 获取方法见 2020-09-24 更新日志。如果只加入了一家公司, 可以不填
-const CORP_ID = "" 
+const CORP_ID = "dingb0de7e50a4aec6f335c2f4657eb6378f" 
 
 // 锁屏意图, 配合 Tasker 完成锁屏动作, 具体配置方法见 2021-03-09 更新日志
 const ACTION_LOCK_SCREEN = "autojs.intent.action.LOCK_SCREEN"
@@ -63,7 +63,7 @@ var currentDate = new Date()
 var suspend = false
 
 // 本次打开钉钉前是否需要等待
-var needWaiting = true
+var needWaiting = false
 
 // 运行日志路径
 var globalLogFilePath = "/sdcard/脚本/Archive/" + getCurrentDate() + "-log.txt"
@@ -84,6 +84,14 @@ events.observeNotification()
 events.on("notification", function(n) {
     notificationHandler(n)
 });
+  
+/**
+events.onNotification( function(n) {
+	toastLog("notificationHandler 2")
+    notificationHandler(n)
+});
+*/  
+
 
 events.setKeyInterceptionEnabled("volume_up", OBSERVE_VOLUME_KEY)
 
@@ -103,7 +111,7 @@ events.onKeyDown("volume_up", function(event){
     // sendQQMsg("测试文本")
     // sendEmail("测试主题", "测试文本", null)
     // sendServerChan(测试主题, 测试文本)
-    // sendPushDeer(测试主题, 测试文本)
+    // sendPushPlus(测试主题, 测试文本)
 });
 
 toastLog("监听中, 请在日志中查看记录的通知及其内容")
@@ -120,7 +128,7 @@ function notificationHandler(n) {
     var packageId = n.getPackageName()  // 获取通知包名
     var abstract = n.tickerText         // 获取通知摘要
     var text = n.getText()              // 获取通知文本
-    
+    //console.info(text)
     // 过滤 PackageId 白名单之外的应用所发出的通知
     if (!filterNotification(packageId, abstract, text)) { 
         return;
@@ -137,7 +145,21 @@ function notificationHandler(n) {
     }
 
     switch(text) {
-        
+		
+		case "测试": // 监听文本为 "测试" 的通知
+			console.info("测试")
+			//sendServerChan("测试主题", "测试文本")
+			//sendPushPlus("测试主题", "测试文本")
+			backHome()
+            break;
+		case "锁屏": // 监听文本为 "锁屏" 的通知
+			console.info("锁屏")
+            lockScreen()
+            break;
+        case "解锁": // 监听文本为 "解锁" 的通知
+            brightScreen()
+            unlockScreen()
+            break;
         case "打卡": // 监听文本为 "打卡" 的通知
             needWaiting = false
             threads.shutDownAll()
@@ -159,8 +181,8 @@ function notificationHandler(n) {
                     case PUSH_METHOD.ServerChan:
                         sendServerChan("考勤结果", getStorageData("dingding", "clockResult"))
                        break;
-                    case PUSH_METHOD.PushDeer:
-                        sendPushDeer("考勤结果", getStorageData("dingding", "clockResult"))
+                    case PUSH_METHOD.PushPlus:
+                        sendPushPlus("考勤结果", getStorageData("dingding", "clockResult"))
                        break;
                 }
             })
@@ -181,8 +203,8 @@ function notificationHandler(n) {
                     case PUSH_METHOD.ServerChan:
                         sendServerChan("修改成功", "已暂停定时打卡功能")
                        break;
-                    case PUSH_METHOD.PushDeer:
-                        sendPushDeer("修改成功", "已暂停定时打卡功能")
+                    case PUSH_METHOD.PushPlus:
+                        sendPushPlus("修改成功", "已暂停定时打卡功能")
                        break;
                 }
             })
@@ -203,8 +225,8 @@ function notificationHandler(n) {
                     case PUSH_METHOD.ServerChan:
                         sendServerChan("修改成功", "已恢复定时打卡功能")
                        break;
-                    case PUSH_METHOD.PushDeer:
-                        sendPushDeer("修改成功", "已恢复定时打卡功能")
+                    case PUSH_METHOD.PushPlus:
+                        sendPushPlus("修改成功", "已恢复定时打卡功能")
                        break;
                 }
             })
@@ -239,8 +261,8 @@ function notificationHandler(n) {
                 case PUSH_METHOD.ServerChan:
                     sendServerChan("考勤结果", text)
                    break;
-                case PUSH_METHOD.PushDeer:
-                    sendPushDeer("考勤结果", text)
+                case PUSH_METHOD.PushPlus:
+                    sendPushPlus("考勤结果", text)
                    break;
            }
         })
@@ -262,7 +284,7 @@ function doClock() {
     unlockScreen()      // 解锁屏幕
     holdOn()            // 随机等待
     signIn()            // 自动登录
-    handleLate()        // 处理迟到
+    //handleLate()        // 处理迟到
     attendKaoqin()      // 考勤打卡
 
     if (currentDate.getHours() <= 12) 
@@ -270,7 +292,7 @@ function doClock() {
     else 
     clockOut()          // 下班打卡
     
-    lockScreen()        // 关闭屏幕
+    //lockScreen()        // 关闭屏幕
 }
 
 
@@ -312,7 +334,7 @@ function sendEmail(title, message, attachFilePath) {
     }
     else {
         console.error("不存在应用: " + PACKAGE_ID_MAIL_163)
-        lockScreen()
+        //lockScreen()
         return;
     }
 
@@ -343,9 +365,9 @@ function sendEmail(title, message, attachFilePath) {
 
     console.log("正在发送邮件...")
     
-    home()
-    sleep(2000)
-    lockScreen()    // 关闭屏幕
+    backHome()
+    
+    //lockScreen()    // 关闭屏幕
 }
 
 
@@ -371,9 +393,9 @@ function sendQQMsg(message) {
     id("input").findOne().setText(message)
     id("fun_btn").findOne().click()
 
-    home()
-    sleep(1000)
-    lockScreen()    // 关闭屏幕
+    backHome()
+    
+    //lockScreen()    // 关闭屏幕
 }
 
 
@@ -395,31 +417,40 @@ function sendQQMsg(message) {
 
     console.log(res)
     sleep(1000)
-    lockScreen()    // 关闭屏幕
+    //lockScreen()    // 关闭屏幕
 }
 
 
 /**
- * @description PushDeer推送
+ * @description pushplus推送
  * @param {string} title 标题
  * @param {string} message 消息
  */
- function sendPushDeer(title, message) {
+ function sendPushPlus(title, message) {
 
-    console.log("向 PushDeer 发起推送请求")
+    console.log("向 pushplus 发起推送请求")
 
-    url = "https://api2.pushdeer.com/message/push"
+    // url = "https://api2.pushdeer.com/message/push"
+	// 
+    // res = http.post(encodeURI(url), {
+    //     "pushkey": PUSHPLUS,
+    //     "text": title,
+    //     "desp": message,
+    //     "type": "markdown",
+    // });
+	
+	url = "http://www.pushplus.plus/send"
 
     res = http.post(encodeURI(url), {
-        "pushkey": PUSH_DEER,
-        "text": title,
-        "desp": message,
-        "type": "markdown",
+        "token": PUSHPLUS,
+        "title": title,
+        "content": message,
+		"template":"markdown"
     });
 
     console.log(res)
-    sleep(1000)
-    lockScreen()    // 关闭屏幕
+    //sleep(1000)
+    //lockScreen()    // 关闭屏幕
 }
 
 
@@ -468,14 +499,22 @@ function unlockScreen() {
                 device.height * 0.1     // 滑动终点 y 坐标：距离屏幕顶部 10% 的位置
             ]
         )
+		sleep(500)
+		click("0")
+		sleep(500)
+		click("0")
+		sleep(500)
+		click("0")
+		sleep(500)
+		click("0")
 
         sleep(1000) // 等待解锁动画完成
-        home()
+        backHome()
         sleep(1000) // 等待返回动画完成
     }
 
     if (isDeviceLocked()) {
-        console.error("上滑解锁失败, 请按脚本中的注释调整 gesture(time, [x1,y1], [x2,y2]) 方法的参数!")
+        console.error("解锁失败, 请按脚本中的注释调整 gesture(time, [x1,y1], [x2,y2]) 方法的参数!")
         return;
     }
     console.info("屏幕已解锁")
@@ -577,7 +616,7 @@ function attendKaoqin(){
     app.startActivity(a);
     console.log("正在进入考勤界面...")
     
-    textContains("申请").waitFor()
+    //textContains("申请").waitFor()
     console.info("已进入考勤界面")
     sleep(1000)
 }
@@ -593,7 +632,7 @@ function clockIn() {
     if (null != textContains("已打卡").findOne(1000)) {
         console.info("已打卡")
         toast("已打卡")
-        home()
+        backHome()
         sleep(1000)
         return;
     }
@@ -609,10 +648,12 @@ function clockIn() {
         return;
     }
 
-    textContains("已连接").waitFor()
+    //textContains("已连接").waitFor()
     console.info("已连接考勤机")
     sleep(1000)
-
+	console.info("查找上班打卡："+textMatches("上班打卡").clickable(true).findOne(1000))
+	console.info("查找下班打卡："+textMatches("下班打卡").clickable(true).findOne(1000))
+	
     if (null != textMatches("上班打卡").clickable(true).findOne(1000)) {
         btn_clockin = textMatches("上班打卡").clickable(true).findOnce()
         btn_clockin.click()
@@ -623,12 +664,18 @@ function clockIn() {
         console.log("点击打卡按钮坐标")
     }
     sleep(1000)
-    handleLate() // 处理迟到打卡
+    //handleLate() // 处理迟到打卡
     
-    home()
-    sleep(1000)
+    backHome()
 }
-
+function backHome(){
+	sleep(2000)
+	home()
+	sleep(2000)
+	recents()
+	sleep(1000)
+	click(577,2262)
+}
 
 /**
  * @description 下班打卡 
@@ -647,7 +694,7 @@ function clockOut() {
         return;
     }
 
-    textContains("已连接").waitFor()
+    //textContains("已连接").waitFor()
     console.info("已连接考勤机")
     sleep(1000)
 
@@ -667,7 +714,7 @@ function clockOut() {
         console.warn("早退打卡")
     }
     
-    home()
+    backHome()
     sleep(1000)
 }
 
@@ -695,7 +742,32 @@ function lockScreen(){
         console.info("屏幕已关闭")
     }
     else {
-        console.error("屏幕未关闭, 请尝试其他锁屏方案, 或等待屏幕自动关闭")
+        console.error("屏幕未关闭, 正在锁屏")
+		//手势下滑，拉出快捷操作界面
+		 gesture(
+             320, // 滑动时间：毫秒
+             [
+                 device.width  * 0.8,    // 滑动起点 x 坐标：屏幕宽度的80%
+                 device.height * 0.01     // 滑动起点 y 坐标：距离屏幕顶部 10% 的位置
+             ],
+             [
+                 device.width  * 0.8,    // 滑动终点 x 坐标：屏幕宽度的80%
+                 device.height * 0.5     // 滑动终点 y 坐标：距离屏幕顶部 15% 的位置
+             ]
+         )
+		//quickSettings()
+		 sleep(500)
+		 //点击锁屏按钮坐标
+		 click(906, 1917)
+		 
+         sleep(1000) // 等待解锁动画完成
+         
+		 if (isDeviceLocked()) {
+		 	console.info("屏幕已关闭")
+		 }
+		 else {
+		 	console.error("屏幕未关闭, 等待自动锁屏")
+		 }
     }
 }
 
@@ -731,7 +803,7 @@ function filterNotification(bundleId, abstract, text) {
     var check = PACKAGE_ID_WHITE_LIST.some(function(item) {return bundleId == item}) 
     if (!NOTIFICATIONS_FILTER || check) {
         console.verbose(bundleId)
-        console.verbose(abstract)
+        //console.verbose(abstract)
         console.verbose(text)
         console.verbose("---------------------------")
         return true
