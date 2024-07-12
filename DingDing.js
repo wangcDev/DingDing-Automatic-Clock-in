@@ -108,10 +108,6 @@ events.onKeyDown("volume_up", function(event){
 
     // 可以在此调试各个方法
     // doClock()
-    // sendQQMsg("测试文本")
-    // sendEmail("测试主题", "测试文本", null)
-    // sendServerChan(测试主题, 测试文本)
-    // sendPushPlus(测试主题, 测试文本)
 });
 
 toastLog("监听中, 请在日志中查看记录的通知及其内容")
@@ -145,15 +141,24 @@ function notificationHandler(n) {
     }
 
     switch(text) {
-		
+		case "1": // 监听文本为 "测试" 的通知
+			
+			break;
 		case "测试": // 监听文本为 "测试" 的通知
-			console.info("测试")
-			//sendServerChan("测试主题", "测试文本")
-			//sendPushPlus("测试主题", "测试文本")
-			backHome()
+
+			
+            break;
+		case "清理": // 监听文本为 "清理" 的通知
+			recents()
+			sleep(2000)
+			click(577,2262)
+			sleep(2000)
+			home()
+            break;
+		case "主页": // 监听文本为 "主页" 的通知
+			home()
             break;
 		case "锁屏": // 监听文本为 "锁屏" 的通知
-			console.info("锁屏")
             lockScreen()
             break;
         case "解锁": // 监听文本为 "解锁" 的通知
@@ -169,67 +174,37 @@ function notificationHandler(n) {
             break;
 
         case "查询": // 监听文本为 "查询" 的通知
-            threads.shutDownAll()
-            threads.start(function(){
-                switch(DEFAULT_MESSAGE_DELIVER) {
-                    case PUSH_METHOD.QQ:
-                        sendQQMsg(getStorageData("dingding", "clockResult"))
-                       break;
-                    case PUSH_METHOD.Email:
-                        sendEmail("考勤结果", getStorageData("dingding", "clockResult"), null)
-                       break;
-                    case PUSH_METHOD.ServerChan:
-                        sendServerChan("考勤结果", getStorageData("dingding", "clockResult"))
-                       break;
-                    case PUSH_METHOD.PushPlus:
-                        sendPushPlus("考勤结果", getStorageData("dingding", "clockResult"))
-                       break;
-                }
-            })
+			console.log("打开钉钉");
+			launchApp("钉钉");
+			sleep(5 * 1000);
+			console.log("点击消息");
+			click(0,2252,215,2404)
+			sleep(500);
+			console.log("点击回话分组");
+			click(1006,294);
+			sleep(500);
+			console.log("点击公司分组");
+			click(488,1398);
+			sleep(500);
+		    var res = textStartsWith("考勤打卡").findOne(1000);
+			toastLog("查询考勤打卡结果");
+			if (null != res) {
+				sendPushMessage(res.text())
+			}else{
+				sendPushMessage("未查询到打卡信息")
+			}
             break;
 
         case "暂停": // 监听文本为 "暂停" 的通知
             suspend = true
             console.warn("暂停定时打卡")
-            threads.shutDownAll()
-            threads.start(function(){
-                switch(DEFAULT_MESSAGE_DELIVER) {
-                    case PUSH_METHOD.QQ:
-                        sendQQMsg("修改成功, 已暂停定时打卡功能")
-                       break;
-                    case PUSH_METHOD.Email:
-                        sendEmail("修改成功", "已暂停定时打卡功能", null)
-                       break;
-                    case PUSH_METHOD.ServerChan:
-                        sendServerChan("修改成功", "已暂停定时打卡功能")
-                       break;
-                    case PUSH_METHOD.PushPlus:
-                        sendPushPlus("修改成功", "已暂停定时打卡功能")
-                       break;
-                }
-            })
+			sendPushMessage("已暂停定时打卡功能")
             break;
 
         case "恢复": // 监听文本为 "恢复" 的通知
             suspend = false
             console.warn("恢复定时打卡")
-            threads.shutDownAll()
-            threads.start(function(){
-                switch(DEFAULT_MESSAGE_DELIVER) {
-                    case PUSH_METHOD.QQ:
-                        sendQQMsg("修改成功, 已恢复定时打卡功能")
-                       break;
-                    case PUSH_METHOD.Email:
-                        sendEmail("修改成功", "已恢复定时打卡功能", null)
-                       break;
-                    case PUSH_METHOD.ServerChan:
-                        sendServerChan("修改成功", "已恢复定时打卡功能")
-                       break;
-                    case PUSH_METHOD.PushPlus:
-                        sendPushPlus("修改成功", "已恢复定时打卡功能")
-                       break;
-                }
-            })
+			sendPushMessage("已恢复定时打卡功能")
             break;
 
         case "日志": // 监听文本为 "日志" 的通知
@@ -248,28 +223,32 @@ function notificationHandler(n) {
     
     // 监听钉钉返回的考勤结果
     if (packageId == PACKAGE_ID_DD && text.indexOf("考勤打卡") >= 0) { 
-        setStorageData("dingding", "clockResult", text)
-        threads.shutDownAll()
-        threads.start(function() {
-            switch(DEFAULT_MESSAGE_DELIVER) {
-                case PUSH_METHOD.QQ:
-                    sendQQMsg(text)
-                   break;
-                case PUSH_METHOD.Email:
-                    sendEmail("考勤结果", text, cameraFilePath)
-                   break;
-                case PUSH_METHOD.ServerChan:
-                    sendServerChan("考勤结果", text)
-                   break;
-                case PUSH_METHOD.PushPlus:
-                    sendPushPlus("考勤结果", text)
-                   break;
-           }
-        })
+        setStorageData("dingding", "clockResult", "时间: " + getCurrentDate() + " " + getCurrentTime()+"，结果 " + text)
+        sendPushMessage(text)
         return;
     }
 }
 
+function sendPushMessage(message){
+	console.log("sendPushMessage:"+message)
+	threads.shutDownAll()
+    threads.start(function(){
+        switch(DEFAULT_MESSAGE_DELIVER) {
+            case PUSH_METHOD.QQ:
+                sendQQMsg(message)
+               break;
+            case PUSH_METHOD.Email:
+                sendEmail("通知", message, null)
+               break;
+            case PUSH_METHOD.ServerChan:
+                sendServerChan("通知", message)
+               break;
+            case PUSH_METHOD.PushPlus:
+                sendPushPlus("通知", message)
+               break;
+        }
+    })
+}
 
 /**
  * @description 打卡流程
@@ -365,7 +344,7 @@ function sendEmail(title, message, attachFilePath) {
 
     console.log("正在发送邮件...")
     
-    backHome()
+    home()
     
     //lockScreen()    // 关闭屏幕
 }
@@ -393,7 +372,7 @@ function sendQQMsg(message) {
     id("input").findOne().setText(message)
     id("fun_btn").findOne().click()
 
-    backHome()
+    home()
     
     //lockScreen()    // 关闭屏幕
 }
@@ -428,8 +407,6 @@ function sendQQMsg(message) {
  */
  function sendPushPlus(title, message) {
 
-    console.log("向 pushplus 发起推送请求")
-
     // url = "https://api2.pushdeer.com/message/push"
 	// 
     // res = http.post(encodeURI(url), {
@@ -448,7 +425,7 @@ function sendQQMsg(message) {
 		"template":"markdown"
     });
 
-    console.log(res)
+    //console.log(res)
     //sleep(1000)
     //lockScreen()    // 关闭屏幕
 }
@@ -509,7 +486,7 @@ function unlockScreen() {
 		click("0")
 
         sleep(1000) // 等待解锁动画完成
-        backHome()
+        home()
         sleep(1000) // 等待返回动画完成
     }
 
@@ -632,7 +609,7 @@ function clockIn() {
     if (null != textContains("已打卡").findOne(1000)) {
         console.info("已打卡")
         toast("已打卡")
-        backHome()
+        home()
         sleep(1000)
         return;
     }
@@ -666,15 +643,7 @@ function clockIn() {
     sleep(1000)
     //handleLate() // 处理迟到打卡
     
-    backHome()
-}
-function backHome(){
-	sleep(2000)
-	home()
-	sleep(2000)
-	recents()
-	sleep(1000)
-	click(577,2262)
+    home()
 }
 
 /**
@@ -714,8 +683,8 @@ function clockOut() {
         console.warn("早退打卡")
     }
     
-    backHome()
-    sleep(1000)
+    home()
+  
 }
 
 
@@ -858,4 +827,21 @@ function setVolume(volume) {
     device.setNotificationVolume(volume)
     console.verbose("媒体音量:" + device.getMusicVolume())
     console.verbose("通知音量:" + device.getNotificationVolume())
+}
+
+//根据控件文字点击，如果点击失败，则说明打卡流程无法正常进行，结束脚本运行
+function clickMessage(message) {
+  var n = 3;
+  var logo = false;
+  while (n--) {
+    if (click(message)) {
+      logo = true;
+      break;
+    }
+    sleep(3 * 1000);
+  }
+  if (logo == false) {
+    console.error("点击" + message + "出错");
+    exit();
+  }
 }
